@@ -1,7 +1,9 @@
 venv
-.cache
-config.json
-browser.json
-oauth.json
+build
+dist
+*.json
 *.txt
 *.csv
+*.spec
+.cache
+build.ps1
