@@ -1,5 +1,7 @@
 venv
 .cache
 config.json
+browser.json
+oauth.json
 *.txt
 *.csv
