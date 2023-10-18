@@ -4,6 +4,7 @@ import ytmusicapi
 from ytmusicapi import YTMusic
 import csv, json
 import os, sys
+import logging
 
 class Spotify2Youtube():
     def __init__(self, config_file=True):
@@ -20,6 +21,8 @@ class Spotify2Youtube():
         print(f'\n{len(sp_playlist_tracks)} tracks will be imported from \"{sp_playlist_title}\" to YouTube')
         ytlist_id = self.yt.import_tracks(sp_playlist_title, sp_playlist_tracks,
                                           ytlist_desc, ytlist_visibility)
+        with open('spotify2YT.log', 'a', encoding='utf-8-sig') as logf:
+            logf.write(f'\n\"{sp_playlist_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         print(f'\"{sp_playlist_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         # os.remove('browser.json')
     
@@ -50,8 +53,10 @@ class Spotify2Youtube():
         print(f'\n{len(parsed_tracks)} tracks will be imported from \"{parsed_title}\" to YouTube')
         ytlist_id = self.yt.import_tracks(parsed_title, parsed_tracks,
                                           ytlist_desc, ytlist_visibility)
+        with open('spotify2YT.log', 'a', encoding='utf-8-sig') as logf:
+            logf.write(f'\n\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         print(f'\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
-        
+                
     class SpotifyExport():
         def __init__(self, config_file: bool):
             if config_file:
@@ -196,7 +201,7 @@ class Spotify2Youtube():
     class YoutubeImport():
         def __init__(self):     
             if not os.path.exists('browser.json'):
-                print('Visit https://music.youtube.com/ and get the access header.')
+                print('\nVisit https://music.youtube.com/ and get the access header.')
                 ytmusicapi.setup(filepath='browser.json')          
             self.yt_client = YTMusic('browser.json')     
                              
@@ -204,9 +209,13 @@ class Spotify2Youtube():
         def import_tracks(self, new_playlist_name, imported_tracks: list, desc, privacy):
             imported_tracks_ID = []
             total_track_no = len(imported_tracks)
+            logging.basicConfig(level=logging.INFO, filename='spotify2YT.log', filemode='a', encoding='utf-8-sig', format='%(levelname)s: %(message)s')
+            with open('spotify2YT.log', 'w', encoding='utf-8-sig') as logf:
+                logf.write(f'Transfer {total_track_no} tracks from \"{new_playlist_name}\" to YouTube\n')
+                logf.write(f'Description: {desc}\nPrivacy Status: {privacy}\n\n')
             
             for idx, metadata in enumerate(imported_tracks):    # metadata : dict->{Title, Artist, Album, ... more}
-                trackID = self.search_tracks(metadata)
+                trackID = self.search_tracks(metadata, idx + 1)
                 imported_tracks_ID.append(trackID)
                 if idx == (total_track_no - 1):
                     print(f'{idx+1}/{total_track_no} exported.\n')
@@ -225,21 +234,43 @@ class Spotify2Youtube():
                 sys.exit(0)
             return new_playlist_id
 
-        def search_tracks(self, target_attrs: dict):
+        def search_tracks(self, target_attrs: dict, iter_idx: int = 1):
             search_str = f"{target_attrs['Title']}-{target_attrs['Artist']}-{target_attrs['Album']}"
             results = self.yt_client.search(search_str)
             
             for info in results:
                 if info['category'] == 'More from YouTube':
                     continue
-                
                 if info['category'] == 'Top result' and info['resultType'] == 'song':
                     return info['videoId']
                 if info['category'] == 'Songs':
+                    if target_attrs['Title'] == info['title']:
+                        return info['videoId']
+                if info['category'] == 'Videos':
                     if target_attrs['Title'] in info['title']:
+                        logging.info(f"#{iter_idx} {target_attrs['Title']}: Added track is in form of video(https://www.youtube.com/watch?v={info['videoId']}).")
                         return info['videoId']
             
-            return next((info['videoId'] for info in results if info['category'] == 'Songs'), None)
+            alt_track_id = next((info['videoId'] for info in results if info['resultType'] == 'song'), None)
+            logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track added(https://www.youtube.com/watch?v={alt_track_id}).")
+            return alt_track_id
+        
+        def search_tracks_OLD(self, target_attrs: dict, iter_idx: int = 1):
+            search_str = f"{target_attrs['Title']}-{target_attrs['Artist']}-{target_attrs['Album']}"
+            results = self.yt_client.search(search_str)
+            
+            for info in results:
+                if info['category'] == 'More from YouTube':
+                    continue
+                if info['category'] == 'Top result' and info['resultType'] == 'song':
+                    return info['videoId']
+                if info['category'] == 'Songs':
+                    if target_attrs['Title'] == info['title']:
+                        return info['videoId']
+            
+            alt_track_id = next((info['videoId'] for info in results if info['category'] == 'Songs'), None)
+            logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track added(https://www.youtube.com/watch?v={alt_track_id}).")
+            return alt_track_id
                 
 
 if __name__ == '__main__':

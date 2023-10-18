@@ -1,11 +1,11 @@
-from new_cpy import Spotify2Youtube
+from new import Spotify2Youtube
 import os, sys
 
 OPTION_MENU = '''
 1. Transfer Spotify playlist to YouTube
-2. Import Spotify playlist from local .txt/.csv file to YouTube
-3. Export Spotify playlist (simplified info.) to local file (.csv)
-4. Export Spotify playlist (detailed info.) to local file (.csv)
+2. Import Spotify playlist from local .csv file to YouTube
+3. Export Spotify playlist (simplified info) to local file (.csv)
+4. Export Spotify playlist (detailed info) to local file (.csv)
 '''
 
 def get_user_choice():
