@@ -2,9 +2,8 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import ytmusicapi
 from ytmusicapi import YTMusic
-import csv, json
+import csv, json, logging
 import os, sys
-import logging
 
 class Spotify2Youtube():
     def __init__(self, config_file=True):

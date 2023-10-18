@@ -1,4 +1,4 @@
-from new import Spotify2Youtube
+from Spotify_to_YouTube import Spotify2Youtube
 import os
 
 OPTION_MENU = '''
