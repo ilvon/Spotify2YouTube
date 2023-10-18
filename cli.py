@@ -1,5 +1,5 @@
 from new import Spotify2Youtube
-import os, sys
+import os
 
 OPTION_MENU = '''
 1. Transfer Spotify playlist to YouTube
@@ -27,12 +27,16 @@ def cli_init():
         process_opt = get_user_choice() 
         if process_opt == 1:
             main.init_transfer()
+            print('\nTransfer process finished.')
         elif process_opt == 2:
             main.init_transfer_fromLocal()
+            print('\nTransfer process finished.')
         elif process_opt == 3:
             main.sp.export_simplified_tracks_info()
+            print('\nPlaylist with simplified track info exported to local csv file.')
         elif process_opt == 4:
             main.sp.export_detailed_tracks_info()
+            print('\nPlaylist with detailed track info exported to local csv file.')
         
         export_more = input('Continue to transfer/export Spotify playlist? (Y / Any key to exit): ')
         if export_more not in ['Y', 'y']:
