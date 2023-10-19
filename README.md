@@ -4,15 +4,11 @@ A simple command-line tool to Spotify playlists to local csv files or transfer t
 
 This python script uses [spotipy](https://github.com/spotipy-dev/spotipy) and [ytmusicapi](https://github.com/sigma67/ytmusicapi)
 
----
-
 ## Features
 
 - Transfer Spotify playlists to YouTube playlist
 - Import playlist from local csv file to create YouTube playlist
 - Export Spotify playlist to csv file with tracks' metadata
-
----
 
 ## Remarks
 
