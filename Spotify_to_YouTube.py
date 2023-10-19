@@ -6,10 +6,10 @@ import csv, json, logging
 import os, sys
 
 class Spotify2Youtube():
-    def __init__(self, config_file=True):
-        self.__log_filename__ = 'Spotify2YouTube.log'
-        self.sp = self.SpotifyExport(config_file)
-        self.yt = self.YoutubeImport(log_name=self.__log_filename__)
+    def __init__(self, init_with_config=True):
+        self.__log_name__ = 'Spotify2YouTube.log'
+        self.sp = self.SpotifyExport(init_with_config)
+        self.yt = self.YoutubeImport(log_name=self.__log_name__)
     
     def init_transfer(self):
         try:
@@ -22,7 +22,7 @@ class Spotify2Youtube():
             print(f'\n{len(sp_playlist_tracks)} tracks will be imported from \"{sp_playlist_title}\" to YouTube')
             ytlist_id = self.yt.import_tracks(sp_playlist_title, sp_playlist_tracks,
                                             ytlist_desc, ytlist_visibility)
-            with open(self.__log_filename__, 'a', encoding='utf-8-sig') as logf:
+            with open(self.__log_name__, 'a', encoding='utf-8-sig') as logf:
                 logf.write(f'\n\"{sp_playlist_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
             print(f'\"{sp_playlist_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         except Exception as err:
@@ -56,7 +56,7 @@ class Spotify2Youtube():
         print(f'\n{len(parsed_tracks)} tracks will be imported from \"{parsed_title}\" to YouTube')
         ytlist_id = self.yt.import_tracks(parsed_title, parsed_tracks,
                                           ytlist_desc, ytlist_visibility)
-        with open(self.__log_filename__, 'a', encoding='utf-8-sig') as logf:
+        with open(self.__log_name__, 'a', encoding='utf-8-sig') as logf:
             logf.write(f'\n\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         print(f'\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
                 
@@ -162,7 +162,7 @@ class Spotify2Youtube():
                             })
                             
                         offset += 100
-            return playlist_title, all_track_attrs  # all_track_attrs->[{attr}, {attr}, {attr}]
+            return playlist_title, all_track_attrs
         
         def export_simplified_tracks_info(self, encoding_mode='utf-8-sig'): # output .csv
             title, track_info = self.get_playlist_tracks_info()
@@ -170,7 +170,7 @@ class Spotify2Youtube():
                 with open(f'{title}.csv', 'w', newline='', encoding=encoding_mode) as export:
                     csvwriter = csv.DictWriter(export, fieldnames=['Title', 'Artist', 'Album'])
                     csvwriter.writeheader()
-                    for aud in track_info:  # aud is a dict
+                    for aud in track_info:
                         csvwriter.writerow({
                             'Title': aud['Title'], 
                             'Artist': aud['Artist'], 
@@ -210,14 +210,14 @@ class Spotify2Youtube():
                 print('\nVisit https://music.youtube.com/ and get the access header.')
                 ytmusicapi.setup(filepath='browser.json')          
             self.yt_client = YTMusic('browser.json') 
-            self.__log_filename__ = log_name    
+            self.__log_name__ = log_name    
                              
         # imported_tracks: list containing dict
         def import_tracks(self, new_playlist_name, imported_tracks: list, desc, privacy):
             imported_tracks_ID = []
             total_track_no = len(imported_tracks)
-            logging.basicConfig(level=logging.INFO, filename=self.__log_filename__, filemode='a', encoding='utf-8-sig', format='%(levelname)s: %(message)s')
-            with open(self.__log_filename__, 'w', encoding='utf-8-sig') as logf:
+            logging.basicConfig(level=logging.INFO, filename=self.__log_name__, filemode='a', encoding='utf-8-sig', format='%(levelname)s: %(message)s')
+            with open(self.__log_name__, 'w', encoding='utf-8-sig') as logf:
                 logf.write(f'Transfer {total_track_no} tracks from \"{new_playlist_name}\" to YouTube\n')
                 logf.write(f'Description: {desc}\nPrivacy Status: {privacy}\n')
             
@@ -264,4 +264,4 @@ class Spotify2Youtube():
                        
 
 if __name__ == '__main__':
-    main_process = Spotify2Youtube(config_file=True) 
+    main_process = Spotify2Youtube(init_with_config=True) 

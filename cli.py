@@ -3,7 +3,7 @@ import os
 
 OPTION_MENU = '''
 1. Transfer Spotify playlist to YouTube
-2. Import Spotify playlist from local .csv file to YouTube
+2. Import Spotify playlist from local csv file to YouTube
 3. Export Spotify playlist (simplified info) to local file (.csv)
 4. Export Spotify playlist (detailed info) to local file (.csv)
 '''
@@ -21,7 +21,7 @@ def get_user_choice():
             print('Please input valid intger value.')
  
 def cli_init(): 
-    main = Spotify2Youtube(config_file=True)
+    main = Spotify2Youtube(init_with_config=True)
     
     while True:  
         process_opt = get_user_choice() 
