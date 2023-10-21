@@ -2,7 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import ytmusicapi
 from ytmusicapi import YTMusic
-import csv, json, logging
+import csv, json, logging, re
 import os, sys
 
 class Spotify2Youtube():
@@ -10,6 +10,13 @@ class Spotify2Youtube():
         self.__log_name__ = 'Spotify2YouTube.log'
         self.sp = self.SpotifyExport(init_with_config)
         self.yt = self.YoutubeImport(log_name=self.__log_name__)
+        
+    @staticmethod
+    def terminate(message, exit_code:int = 1):
+        if message:
+            print(message)
+        input('Press any key to exit...')
+        sys.exit(exit_code)
     
     def init_transfer(self):
         try:
@@ -26,8 +33,7 @@ class Spotify2Youtube():
                 logf.write(f'\n\"{sp_playlist_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
             print(f'\"{sp_playlist_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         except Exception as err:
-            print('Error occurred: ' + str(err))
-            sys.exit(1)
+            Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
     
     def init_transfer_fromLocal(self):
         file_import = input('File to be imported: ').strip('"\'')
@@ -42,11 +48,9 @@ class Spotify2Youtube():
                                      'Artist':track['Artist'], 
                                      'Album':track['Album']} for track in parsed_tracks]   # -> [{},{},{}]
             else:
-                print('Unsupported file type!') 
-                sys.exit(1)               
+                Spotify2Youtube.terminate('Unsupported file type!')              
         except OSError:
-            print('Failed to read the targeted file!')
-            sys.exit(1)
+            Spotify2Youtube.terminate('Failed to read the targeted file!')
             
         ytlist_desc = input('\nPlaylist description: ')
         ytlist_visibility = input('Playlist privacy status (PUBLIC / PRIVATE / UNLISTED): ').upper()
@@ -68,11 +72,9 @@ class Spotify2Youtube():
                     with open('config.json', 'r') as jsonf:
                         cfg = json.load(jsonf)
                 except(FileNotFoundError):
-                    print('\"config.json\" does not exist / failed to open!')
-                    sys.exit(1)
+                    Spotify2Youtube.terminate('\"config.json\" does not exist / failed to open!')
                 except Exception as err:
-                    print('An error occurred:', str(err))      
-                    sys.exit(1) 
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
                            
                 self.sp_client = spotipy.Spotify(auth_manager=SpotifyOAuth(
                     client_id=cfg['spotify']['SPOTIPY_CLIENT_ID'],
@@ -83,10 +85,8 @@ class Spotify2Youtube():
                 self.sp_client = spotipy.Spotify(auth_manager=SpotifyOAuth(scope='playlist-read-private'))
                 
             self.playlists = self.sp_client.current_user_playlists()
-            self.all_playlist_title = []
+            self.all_playlist_info = self.playlists['items']
 
-            for playlist_item in self.playlists['items']:
-                self.all_playlist_title.append(playlist_item['name'])
 
         def chk_create_JSON(self):
             if os.path.exists('config.json'):
@@ -94,8 +94,7 @@ class Spotify2Youtube():
             
             create_cfg = input('\"config.json\" does not exist. Create it? (Y/N): ')
             if create_cfg not in ['y', 'Y']:
-                print('Script exited.')
-                sys.exit(0)
+                Spotify2Youtube.terminate('Script exited.', 0)
                 
             print('Please visit https://developer.spotify.com/ to create your app and obtain WebAPI credentials.')
             api_client_id = input('Client ID: ')
@@ -112,60 +111,56 @@ class Spotify2Youtube():
                 with open('config.json', 'w') as ojson:
                     json.dump(SPOTIFY_CFG_TEMPLATE, ojson)
             except Exception as err:
-                print('An error occurred when creating \"config.json\": ', str(err))
-                sys.exit(1)
-
-        def print_all_playlist(self):
-            for i, list_name in enumerate(self.all_playlist_title):
-                print(f"{i}. {list_name}")
-                
-        def _prompt_playlist_selection(self): # return playlist ID in list & playlist title 
+                Spotify2Youtube.terminate(f'Error occurred when creating \"config.json\": {str(err)}')
+         
+        def _prompt_SPplaylist_selection(self): # return playlist ID in list & playlist title 
             print('\n') 
-            self.print_all_playlist() 
+            for i, list_info in enumerate(self.playlists['items']):
+                print(f"{i}. {list_info['name']}")
             while True:
-                index = int(input(f'Playlist to be exported (0-{len(self.all_playlist_title)-1}): ')) 
-                if (index <= len(self.all_playlist_title) - 1) and index >= 0:
+                index = int(input(f'Playlist to be exported (0-{len(self.all_playlist_info)-1}): ')) 
+                if (index <= len(self.all_playlist_info) - 1) and index >= 0:
                     break
                 print('Invalid choice.')
-            title = self.all_playlist_title[index]
-            id = [(target['id'], target['tracks']['total']) for target in self.playlists['items'] if target['name'] == title]
-            return id, title    # id = [id , track_numbers]
+            Id = self.playlists['items'][index]['id']
+            title = self.all_playlist_info[index]['name']
+            no_of_track = self.playlists['items'][index]['tracks']['total']
+            return Id, title, no_of_track
         
         def get_playlist_tracks_info(self): # return detailed track info
             all_track_attrs = []
-            playlist_id, playlist_title = self._prompt_playlist_selection()
+            playlist_id, playlist_title, track_count = self._prompt_SPplaylist_selection()
             offset = 0
-            if len(playlist_id):
-                for id, track_count in playlist_id:
-                    while True:
-                        if offset > track_count:
-                            break
-                        tracks = self.sp_client.playlist_tracks(id, limit=100, offset=offset)['items']
-                        
-                        for song in tracks:
-                            info = song['track']
-                            artists = ', '.join([ppl['name'] for ppl in info['artists']])
-                            duration_mins = int(info['duration_ms']/1000/60)
-                            duration_secs = int(info['duration_ms']/1000%60)
-                            if song['added_at'] == '1970-01-01T00:00:00Z':
-                                dateAdd = 'Generated by Spotify'
-                            else:
-                                dateAdd = song['added_at'].replace('T', ' ').replace('Z', '')
-                            all_track_attrs.append({
-                                'Title': info['name'],
-                                'Artist': artists,
-                                'Album': info['album']['name'],
-                                'Release_date': info['album']['release_date'],
-                                'Tracknumber': f"{info['track_number']}//{info['album']['total_tracks']}",
-                                'Duration': f'{duration_mins}:{duration_secs}',
-                                'Date_added': dateAdd
-                            })
-                            
-                        offset += 100
+            while True:
+                if offset > track_count:
+                    break
+                tracks = self.sp_client.playlist_tracks(playlist_id, limit=100, offset=offset)['items']
+                
+                for song in tracks:
+                    info = song['track']
+                    artists = ', '.join([ppl['name'] for ppl in info['artists']])
+                    duration_mins = int(info['duration_ms']/1000/60)
+                    duration_secs = int(info['duration_ms']/1000%60)
+                    if song['added_at'] == '1970-01-01T00:00:00Z':
+                        dateAdd = 'Generated by Spotify'
+                    else:
+                        dateAdd = song['added_at'].replace('T', ' ').replace('Z', '')
+                    all_track_attrs.append({
+                        'Title': info['name'],
+                        'Artist': artists,
+                        'Album': info['album']['name'],
+                        'Release_date': info['album']['release_date'],
+                        'Tracknumber': f"{info['track_number']}//{info['album']['total_tracks']}",
+                        'Duration': f'{duration_mins}:{duration_secs}',
+                        'Date_added': dateAdd
+                    })
+                    
+                offset += 100
             return playlist_title, all_track_attrs
         
         def export_simplified_tracks_info(self, encoding_mode='utf-8-sig'): # output .csv
             title, track_info = self.get_playlist_tracks_info()
+            title = self.sanitize(title)
             try:
                 with open(f'{title}.csv', 'w', newline='', encoding=encoding_mode) as export:
                     csvwriter = csv.DictWriter(export, fieldnames=['Title', 'Artist', 'Album'])
@@ -176,17 +171,15 @@ class Spotify2Youtube():
                             'Artist': aud['Artist'], 
                             'Album': aud['Album']})
             except PermissionError:
-                print('\nYou do not have the permission to write the csv file / the exisiting file is in use!')    
-                sys.exit(1)
+                Spotify2Youtube.terminate('\nYou do not have the permission to write the csv file / the exisiting file is in use!')
             except OSError:
-                print('\nFailed to export the csv file!')
-                sys.exit(1)
+                Spotify2Youtube.terminate('\nFailed to export the csv file!')
             except Exception as err:
-                print(f'\nError occurred: {str(err)}')
-                sys.exit(1)
+                Spotify2Youtube.terminate(f'\nError occurred: {str(err)}')
 
         def export_detailed_tracks_info(self, encoding_mode='utf-8-sig'):
             title, track_info = self.get_playlist_tracks_info()
+            title = self.sanitize(title)
             try:
                 with open(f'{title}.csv', 'w', newline='', encoding=encoding_mode) as export:
                     csvwriter = csv.DictWriter(export, fieldnames=track_info[0].keys())
@@ -194,21 +187,25 @@ class Spotify2Youtube():
                     for aud in track_info:
                         csvwriter.writerow(aud)
             except PermissionError:
-                print('\nYou do not have the permission to write the csv file / the exisiting file is in use!')    
-                sys.exit(1)
+                Spotify2Youtube.terminate('\nYou do not have the permission to write the csv file / the exisiting file is in use!')
             except OSError:
-                print('\nFailed to export the csv file!')
-                sys.exit(1)
+                Spotify2Youtube.terminate('\nFailed to export the csv file!')
             except Exception as err:
-                print(f'\nError occurred: {str(err)}')
-                sys.exit(1)
+                Spotify2Youtube.terminate(f'\nError occurred: {str(err)}')
+            
+        def sanitize(self, title):
+            invalid_chars = r'[\\\/\:\*\?\'\"\<\>\|]'  
+            return re.sub(invalid_chars, ' ', title)  
             
  
     class YoutubeImport():
         def __init__(self, log_name):     
             if not os.path.exists('browser.json'):
                 print('\nVisit https://music.youtube.com/ and get the access header.')
-                ytmusicapi.setup(filepath='browser.json')          
+                try:
+                    ytmusicapi.setup(filepath='browser.json')          
+                except Exception as err:
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}', 1)
             self.yt_client = YTMusic('browser.json') 
             self.__log_name__ = log_name    
                              
@@ -238,7 +235,7 @@ class Spotify2Youtube():
                 del_req_header = input('Delete \"browser.json\"? (Y/N): ')
                 if del_req_header in ['Y', 'y']:
                     os.remove('browser.json')
-                sys.exit(0)
+                Spotify2Youtube.terminate('', 0)
             return new_playlist_id
 
         def search_tracks(self, target_attrs: dict, iter_idx: int = 1):
