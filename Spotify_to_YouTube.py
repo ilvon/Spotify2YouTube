@@ -20,7 +20,7 @@ class Spotify2Youtube():
     
     def init_transfer(self):
         try:
-            sp_playlist_title, sp_playlist_tracks = self.sp.get_playlist_tracks_info()
+            sp_playlist_title, sp_playlist_tracks = self.sp.get_SPplaylist_tracks_info()
             ytlist_desc = input('\nPlaylist description: ')
             ytlist_visibility = input('Playlist privacy status (PUBLIC / PRIVATE / UNLISTED): ').upper()
             if ytlist_visibility not in ['PUBLIC', 'PRIVATE', 'UNLISTED']:
@@ -63,6 +63,19 @@ class Spotify2Youtube():
         with open(self.__log_name__, 'a', encoding='utf-8-sig') as logf:
             logf.write(f'\n\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         print(f'\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
+       
+    def init_update_ytlist(self):   # ? update youtube playlist with spotify playlist
+        try:
+            sp_list_title, sp_list_track = self.sp.get_SPplaylist_tracks_info()
+            target_ytlist_id, target_ytlist_title = self.yt.update_YTplaylist(sp_list_title, sp_list_track)
+            
+            with open(self.__log_name__, 'a', encoding='utf-8-sig') as logf:
+                logf.write(f'\n\"{target_ytlist_title}\" updated successfully, URL = https://www.youtube.com/playlist?list={target_ytlist_id}')
+            print(f'\"{target_ytlist_title}\" updated successfully, URL = https://www.youtube.com/playlist?list={target_ytlist_id}')
+        except OSError:
+            Spotify2Youtube.terminate('\nYou do not have the permission to write the csv file / the exisiting file is in use!')
+        except Exception as err:
+            Spotify2Youtube.terminate(f'\nError occurred: {str(err)}')
                 
     class SpotifyExport():
         def __init__(self, config_file: bool):
@@ -113,8 +126,9 @@ class Spotify2Youtube():
             except Exception as err:
                 Spotify2Youtube.terminate(f'Error occurred when creating \"config.json\": {str(err)}')
          
+                
         def _prompt_SPplaylist_selection(self): # return playlist ID in list & playlist title 
-            print('\n') 
+            print('\nSpotify playlist:') 
             for i, list_info in enumerate(self.playlists['items']):
                 print(f"{i}. {list_info['name']}")
             while True:
@@ -127,7 +141,7 @@ class Spotify2Youtube():
             no_of_track = self.playlists['items'][index]['tracks']['total']
             return Id, title, no_of_track
         
-        def get_playlist_tracks_info(self): # return detailed track info
+        def get_SPplaylist_tracks_info(self): # return detailed track info
             all_track_attrs = []
             playlist_id, playlist_title, track_count = self._prompt_SPplaylist_selection()
             offset = 0
@@ -159,7 +173,7 @@ class Spotify2Youtube():
             return playlist_title, all_track_attrs
         
         def export_simplified_tracks_info(self, encoding_mode='utf-8-sig'): # output .csv
-            title, track_info = self.get_playlist_tracks_info()
+            title, track_info = self.get_SPplaylist_tracks_info()
             title = self.sanitize(title)
             try:
                 with open(f'{title}.csv', 'w', newline='', encoding=encoding_mode) as export:
@@ -178,7 +192,7 @@ class Spotify2Youtube():
                 Spotify2Youtube.terminate(f'\nError occurred: {str(err)}')
 
         def export_detailed_tracks_info(self, encoding_mode='utf-8-sig'):
-            title, track_info = self.get_playlist_tracks_info()
+            title, track_info = self.get_SPplaylist_tracks_info()
             title = self.sanitize(title)
             try:
                 with open(f'{title}.csv', 'w', newline='', encoding=encoding_mode) as export:
@@ -205,10 +219,17 @@ class Spotify2Youtube():
                 try:
                     ytmusicapi.setup(filepath='browser.json')          
                 except Exception as err:
-                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}', 1)
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
             self.yt_client = YTMusic('browser.json') 
-            self.__log_name__ = log_name    
-                             
+            self.__log_name__ = log_name   
+            
+        def auth_exception_handle(self, exceptionType: Exception):
+            print('\n' + str(exceptionType) + '\nTry to delete \"browser.json\" and restart the process!')
+            del_req_header = input('Delete \"browser.json\"? (Y/N): ')
+            if del_req_header in ['Y', 'y']:
+                os.remove('browser.json')
+            Spotify2Youtube.terminate('', 0)
+             
         # imported_tracks: list containing dict
         def import_tracks(self, new_playlist_name, imported_tracks: list, desc, privacy):
             imported_tracks_ID = []
@@ -231,11 +252,10 @@ class Spotify2Youtube():
                                                                 privacy_status=privacy, 
                                                                 video_ids=imported_tracks_ID)
             except Exception as autherr:
-                print(str(autherr) + '\nTry to delete \"browser.json\" and restart the process!')
-                del_req_header = input('Delete \"browser.json\"? (Y/N): ')
-                if del_req_header in ['Y', 'y']:
-                    os.remove('browser.json')
-                Spotify2Youtube.terminate('', 0)
+                if 'Server returned HTTP 401' in str(autherr):
+                    self.auth_exception_handle(autherr)
+                else:
+                    Spotify2Youtube.terminate(f'Error occurred: {str(autherr)}')
             return new_playlist_id
 
         def search_tracks(self, target_attrs: dict, iter_idx: int = 1):
@@ -258,7 +278,72 @@ class Spotify2Youtube():
             alt_track_id = next((info['videoId'] for info in results if info['resultType'] == 'song'), None)
             logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track added(https://www.youtube.com/watch?v={alt_track_id}).")
             return alt_track_id
-                       
+        
+        def _prompt_YTplaylist_selection(self):
+            try:
+                library = self.yt_client.get_library_playlists()
+            except Exception as err:
+                if 'Server returned HTTP 401' in str(err):
+                    self.auth_exception_handle(err)
+                else:
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
+            if library[0]['title'] == 'Liked Music':
+                del library[0]
+            print('\nYouTube playlist:')
+            for idx, playlist in enumerate(library):
+                print(f"{idx}. {playlist['title']}")
+            while True:
+                try:
+                    index = int(input(f'Playlist to be updated (0-{len(library)-1}): ')) 
+                except ValueError:
+                    print('Please insert a valid integer value.')
+                    continue
+                if (index <= len(library)-1) and index >= 0:
+                    break
+                print('Invalid choice.') 
+                 
+            title = library[index]['title']
+            Id = library[index]['playlistId']
+            no_of_track = library[index]['count']
+            return Id, title, no_of_track
+            
+        def update_YTplaylist(self, spotify_list_title, spotify_tracks_list: list):    # delete all old entries & add tracks
+            # get playlist ID and remove items
+            new_track_count = len(spotify_tracks_list)
+            playlistId, playlistTitle, old_track_count = self._prompt_YTplaylist_selection()
+
+            logging.basicConfig(level=logging.INFO, filename=self.__log_name__, filemode='a', encoding='utf-8-sig', format='%(levelname)s: %(message)s')
+            with open(self.__log_name__, 'w', encoding='utf-8-sig') as logf:
+                logf.write(f'Update {playlistTitle} (YouTube) with {spotify_list_title} (Spotify).')
+                logf.write(f'{old_track_count} old YouTube playlist entries will be deleted and updated {new_track_count} tracks from Spotify.')
+            try:
+                ytlist_tracks = self.yt_client.get_playlist(playlistId, None)['tracks']
+                self.yt_client.remove_playlist_items(playlistId, ytlist_tracks)
+            except Exception as autherr:
+                if 'Server returned HTTP 401' in str(autherr):
+                    self.auth_exception_handle(autherr)
+                else:
+                    Spotify2Youtube.terminate(f'Error occurred: {str(autherr)}')
+            print(f'\n{old_track_count} old entries from \"{playlistTitle}\" will be deleted.')
+            
+            # add_new_playlist_items
+            sp2yt_track = []
+            for idx, track in enumerate(spotify_tracks_list):
+                sp2yt_track.append(self.search_tracks(track, idx + 1))
+                if idx == (new_track_count - 1):
+                    print(f'{idx+1}/{new_track_count} tracks added from \"{spotify_list_title}\" to \"{playlistTitle}\".\n')
+                else:
+                    print(f'{idx+1}/{new_track_count} tracks added from \"{spotify_list_title}\" to \"{playlistTitle}\".', end='\r')
+            try:
+                self.yt_client.add_playlist_items(playlistId, sp2yt_track)
+            except Exception as autherr:
+                if 'Server returned HTTP 401' in str(autherr):
+                    self.auth_exception_handle(autherr)
+                else:
+                    Spotify2Youtube.terminate(f'Error occurred: {str(autherr)}')
+                
+            return playlistId, playlistTitle
+         
 
 if __name__ == '__main__':
     main_process = Spotify2Youtube(init_with_config=True) 
