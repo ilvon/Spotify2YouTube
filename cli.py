@@ -6,15 +6,16 @@ OPTION_MENU = '''
 2. Import Spotify playlist from local csv file to YouTube
 3. Export Spotify playlist (simplified info) to local file (.csv)
 4. Export Spotify playlist (detailed info) to local file (.csv)
+5. Update YouTube playlist with Spotify playlist
 '''
 
 def get_user_choice():
     while True:
         print(OPTION_MENU)
         try:
-            user_option = int(input('Option (1-4): '))
-            if user_option < 1 or user_option > 4:
-                print('Please input valid number between 1-4.')
+            user_option = int(input('Option (1-5): '))
+            if user_option < 1 or user_option > 5:
+                print('Please input valid number between 1-5.')
             else: 
                 return user_option
         except ValueError:
@@ -37,6 +38,8 @@ def cli_init():
         elif process_opt == 4:
             main.sp.export_detailed_tracks_info()
             print('\nPlaylist with detailed track info exported to local csv file.')
+        elif process_opt == 5:
+            main.init_update_ytlist()
         
         export_more = input('Continue to transfer/export Spotify playlist? (Y / Any key to exit): ')
         if export_more not in ['Y', 'y']:
