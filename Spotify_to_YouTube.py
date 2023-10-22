@@ -259,7 +259,7 @@ class Spotify2Youtube():
             return new_playlist_id
 
         def search_tracks(self, target_attrs: dict, iter_idx: int = 1):
-            search_str = f"{target_attrs['Title']}-{target_attrs['Artist']}-{target_attrs['Album']}"
+            search_str = f"{target_attrs['Title']}-{target_attrs['Artist']}"
             results = self.yt_client.search(search_str)
             
             for info in results:
@@ -276,6 +276,10 @@ class Spotify2Youtube():
                         return info['videoId']
             
             alt_track = next((info for info in results if info['resultType'] == 'song'), None)
+            if alt_track is None:
+                logging.warning(f"#{iter_idx} {target_attrs['Title']}: Unable to find any matching tracks.")
+                print(f"#{iter_idx} {target_attrs['Title']}: Unable to find any matching tracks.")
+                return None
             alt_info = alt_track['title'] + '-' + alt_track['artists'][0]['name']
             
             logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track \"{alt_info}\" added(https://www.youtube.com/watch?v={alt_track['videoId']}).")
