@@ -251,11 +251,11 @@ class Spotify2Youtube():
                                                                 description=desc,
                                                                 privacy_status=privacy, 
                                                                 video_ids=imported_tracks_ID)
-            except Exception as autherr:
-                if 'Server returned HTTP 401' in str(autherr):
-                    self.auth_exception_handle(autherr)
+            except Exception as err:
+                if 'Server returned HTTP 401' in str(err):
+                    self.auth_exception_handle(err)
                 else:
-                    Spotify2Youtube.terminate(f'Error occurred: {str(autherr)}')
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
             return new_playlist_id
 
         def search_tracks(self, target_attrs: dict, iter_idx: int = 1):
@@ -275,9 +275,11 @@ class Spotify2Youtube():
                         logging.info(f"#{iter_idx} {target_attrs['Title']}: Added track is in form of video(https://www.youtube.com/watch?v={info['videoId']}).")
                         return info['videoId']
             
-            alt_track_id = next((info['videoId'] for info in results if info['resultType'] == 'song'), None)
-            logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track added(https://www.youtube.com/watch?v={alt_track_id}).")
-            return alt_track_id
+            alt_track = next((info for info in results if info['resultType'] == 'song'), None)
+            alt_info = alt_track['title'] + '-' + alt_track['artists'][0]['name']
+            
+            logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track \"{alt_info}\" added(https://www.youtube.com/watch?v={alt_track['videoId']}).")
+            return alt_track['videoId']
         
         def _prompt_YTplaylist_selection(self):
             try:
@@ -314,17 +316,24 @@ class Spotify2Youtube():
 
             logging.basicConfig(level=logging.INFO, filename=self.__log_name__, filemode='a', encoding='utf-8-sig', format='%(levelname)s: %(message)s')
             with open(self.__log_name__, 'w', encoding='utf-8-sig') as logf:
-                logf.write(f'Update {playlistTitle} (YouTube) with {spotify_list_title} (Spotify).')
-                logf.write(f'{old_track_count} old YouTube playlist entries will be deleted and updated {new_track_count} tracks from Spotify.')
+                logf.write(f'Update \"{playlistTitle}\" (YouTube) with \"{spotify_list_title}\" (Spotify).\n')
+                logf.write(f'{old_track_count} old YouTube playlist entries will be deleted and updated {new_track_count} tracks from Spotify.\n')
+            
             try:
-                ytlist_tracks = self.yt_client.get_playlist(playlistId, None)['tracks']
-                self.yt_client.remove_playlist_items(playlistId, ytlist_tracks)
-            except Exception as autherr:
-                if 'Server returned HTTP 401' in str(autherr):
-                    self.auth_exception_handle(autherr)
+                target_ytlist = self.yt_client.get_playlist(playlistId, None)
+                ytlist_tracks = target_ytlist['tracks']
+                if len(ytlist_tracks):
+                    self.yt_client.remove_playlist_items(playlistId, ytlist_tracks)
+                print(f"\nDescription: {target_ytlist['description']}\nPrivacy status: {target_ytlist['privacy']}")
+                new_desc = input('New description (Leave blank for remain unchanged): ')
+                if new_desc:
+                    self.yt_client.edit_playlist(playlistId, description=new_desc)
+                print(f'\n{old_track_count} old entries from \"{playlistTitle}\" will be deleted.')
+            except Exception as err:
+                if 'Server returned HTTP 401' in str(err):
+                    self.auth_exception_handle(err)
                 else:
-                    Spotify2Youtube.terminate(f'Error occurred: {str(autherr)}')
-            print(f'\n{old_track_count} old entries from \"{playlistTitle}\" will be deleted.')
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
             
             # add_new_playlist_items
             sp2yt_track = []
@@ -336,11 +345,11 @@ class Spotify2Youtube():
                     print(f'{idx+1}/{new_track_count} tracks added from \"{spotify_list_title}\" to \"{playlistTitle}\".', end='\r')
             try:
                 self.yt_client.add_playlist_items(playlistId, sp2yt_track)
-            except Exception as autherr:
-                if 'Server returned HTTP 401' in str(autherr):
-                    self.auth_exception_handle(autherr)
+            except Exception as err:
+                if 'Server returned HTTP 401' in str(err):
+                    self.auth_exception_handle(err)
                 else:
-                    Spotify2Youtube.terminate(f'Error occurred: {str(autherr)}')
+                    Spotify2Youtube.terminate(f'Error occurred: {str(err)}')
                 
             return playlistId, playlistTitle
          
