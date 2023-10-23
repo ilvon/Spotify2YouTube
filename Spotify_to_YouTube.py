@@ -64,7 +64,7 @@ class Spotify2Youtube():
             logf.write(f'\n\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
         print(f'\"{parsed_title}\" created successfully, URL = https://www.youtube.com/playlist?list={ytlist_id}')
        
-    def init_update_ytlist(self):   # ? update youtube playlist with spotify playlist
+    def init_update_ytlist(self):
         try:
             sp_list_title, sp_list_track = self.sp.get_SPplaylist_tracks_info()
             target_ytlist_id, target_ytlist_title = self.yt.update_YTplaylist(sp_list_title, sp_list_track)
@@ -127,7 +127,7 @@ class Spotify2Youtube():
                 Spotify2Youtube.terminate(f'Error occurred when creating \"config.json\": {str(err)}')
          
                 
-        def _prompt_SPplaylist_selection(self): # return playlist ID in list & playlist title 
+        def _prompt_SPplaylist_selection(self):
             print('\nSpotify playlist:') 
             for i, list_info in enumerate(self.playlists['items']):
                 print(f"{i}. {list_info['name']}")
@@ -182,7 +182,7 @@ class Spotify2Youtube():
                 offset += 100
             return playlist_title, all_track_attrs
         
-        def export_simplified_tracks_info(self, encoding_mode='utf-8-sig'): # output .csv
+        def export_simplified_tracks_info(self, encoding_mode='utf-8-sig'):
             title, track_info = self.get_SPplaylist_tracks_info()
             title = self.sanitize(title)
             try:
@@ -240,7 +240,6 @@ class Spotify2Youtube():
                 os.remove('browser.json')
             Spotify2Youtube.terminate('', 0)
              
-        # imported_tracks: list containing dict
         def import_tracks(self, new_playlist_name, imported_tracks: list, desc, privacy):
             imported_tracks_ID = []
             total_track_no = len(imported_tracks)
@@ -323,7 +322,7 @@ class Spotify2Youtube():
             no_of_track = library[index]['count']
             return Id, title, no_of_track
             
-        def update_YTplaylist(self, spotify_list_title, spotify_tracks_list: list):    # delete all old entries & add tracks
+        def update_YTplaylist(self, spotify_list_title, spotify_tracks_list: list):
             # get playlist ID and remove items
             new_track_count = len(spotify_tracks_list)
             playlistId, playlistTitle, old_track_count = self._prompt_YTplaylist_selection()
@@ -370,4 +369,3 @@ class Spotify2Youtube():
 
 if __name__ == '__main__':
     main_process = Spotify2Youtube(init_with_config=True) 
-    main_process.sp.export_detailed_tracks_info()
