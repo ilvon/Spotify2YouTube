@@ -9,6 +9,7 @@ This python script uses [spotipy](https://github.com/spotipy-dev/spotipy) and [y
 - Transfer Spotify playlists to YouTube playlist
 - Import playlist from local csv file to create YouTube playlist
 - Export Spotify playlist to csv file with tracks' metadata
+- Update existing YouTube playlist with Spotify playlist
 
 ## Remarks
 
