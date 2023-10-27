@@ -145,10 +145,14 @@ class Spotify2Youtube():
             for i, list_info in enumerate(self.all_playlist_info):
                 print(f"{i}. {list_info['name']}")
             while True:
-                index = int(input(f'Playlist to be exported (0-{len(self.all_playlist_info)-1}): ')) 
-                if (index <= len(self.all_playlist_info) - 1) and index >= 0:
-                    break
-                print('Invalid choice.')
+                try:
+                    index = int(input(f'Playlist to be exported (0-{len(self.all_playlist_info)-1}): ')) 
+                    if index >= 0 and index < len(self.all_playlist_info):
+                        break
+                    else:
+                        raise ValueError
+                except ValueError:
+                    print('Invalid choice.')
             Id = self.all_playlist_info[index]['id']
             title = self.all_playlist_info[index]['name']
             no_of_track = self.all_playlist_info[index]['tracks']['total']
@@ -332,12 +336,12 @@ class Spotify2Youtube():
             while True:
                 try:
                     index = int(input(f'Playlist to be updated (0-{len(library)-1}): ')) 
+                    if index >= 0 and index < len(library):
+                        break
+                    else:
+                        raise ValueError
                 except ValueError:
-                    print('Please insert a valid integer value.')
-                    continue
-                if (index <= len(library)-1) and index >= 0:
-                    break
-                print('Invalid choice.') 
+                    print('Invalid choice.') 
                  
             title = library[index]['title']
             Id = library[index]['playlistId']
