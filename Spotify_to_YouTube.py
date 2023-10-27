@@ -126,24 +126,40 @@ class Spotify2Youtube():
             except Exception as err:
                 Spotify2Youtube.terminate(f'Error occurred when creating \"config.json\": {str(err)}')
          
+        def export_all_playlist_local(self):
+            playlist_number = len(self.all_playlist_info)
+            for iter, playlist in enumerate(self.all_playlist_info):
+                Id = playlist['id']
+                title = playlist['name']
+                length = playlist['tracks']['total']
+                _, attributes = self.get_SPplaylist_tracks_info((Id, title, length))
+                self.export_detailed_tracks_info((title, attributes))
+                if iter == playlist_number-1:
+                    print(f'{iter+1}/{playlist_number} playlist exported')
+                else:
+                    print(f'{iter+1}/{playlist_number} playlist exported', end='\r')
+                
                 
         def _prompt_SPplaylist_selection(self):
             print('\nSpotify playlist:') 
-            for i, list_info in enumerate(self.playlists['items']):
+            for i, list_info in enumerate(self.all_playlist_info):
                 print(f"{i}. {list_info['name']}")
             while True:
                 index = int(input(f'Playlist to be exported (0-{len(self.all_playlist_info)-1}): ')) 
                 if (index <= len(self.all_playlist_info) - 1) and index >= 0:
                     break
                 print('Invalid choice.')
-            Id = self.playlists['items'][index]['id']
+            Id = self.all_playlist_info[index]['id']
             title = self.all_playlist_info[index]['name']
-            no_of_track = self.playlists['items'][index]['tracks']['total']
+            no_of_track = self.all_playlist_info[index]['tracks']['total']
             return Id, title, no_of_track
         
-        def get_SPplaylist_tracks_info(self): # return detailed track info
+        def get_SPplaylist_tracks_info(self, target_playlist = (None, None, None)): # return detailed track info
             all_track_attrs = []
-            playlist_id, playlist_title, track_count = self._prompt_SPplaylist_selection()
+            if target_playlist == (None, None, None):
+                playlist_id, playlist_title, track_count = self._prompt_SPplaylist_selection()
+            else:
+                playlist_id, playlist_title, track_count = target_playlist
             offset = 0
             while True:
                 if offset > track_count:
@@ -152,6 +168,8 @@ class Spotify2Youtube():
                 
                 for song in tracks:
                     info = song['track']
+                    if info == None:
+                        continue
                     try:
                         artists = ', '.join([ppl['name'] for ppl in info['artists']])
                     except:
@@ -201,8 +219,12 @@ class Spotify2Youtube():
             except Exception as err:
                 Spotify2Youtube.terminate(f'\nError occurred: {str(err)}')
 
-        def export_detailed_tracks_info(self, encoding_mode='utf-8-sig'):
-            title, track_info = self.get_SPplaylist_tracks_info()
+        def export_detailed_tracks_info(self, target_playlist = (None, None), encoding_mode='utf-8-sig'):
+            if target_playlist == (None, None):
+                title, track_info = self.get_SPplaylist_tracks_info()
+            else:
+                title, track_info = target_playlist
+                
             title = self.sanitize(title)
             try:
                 with open(f'{title}.csv', 'w', newline='', encoding=encoding_mode) as export:
@@ -368,4 +390,5 @@ class Spotify2Youtube():
          
 
 if __name__ == '__main__':
-    main_process = Spotify2Youtube(init_with_config=True) 
+    main_process = Spotify2Youtube(init_with_config=True)
+    main_process.sp.export_all_playlist_local()

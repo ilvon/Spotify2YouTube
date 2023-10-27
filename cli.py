@@ -3,19 +3,21 @@ import os
 
 OPTION_MENU = '''
 1. Transfer Spotify playlist to YouTube
-2. Import Spotify playlist from local csv file to YouTube
-3. Export Spotify playlist (simplified info) to local file (.csv)
-4. Export Spotify playlist (detailed info) to local file (.csv)
-5. Update YouTube playlist with Spotify playlist
+2. Update YouTube playlist with Spotify playlist
+3. Import Spotify playlist from local csv file to YouTube
+4. Export Spotify playlist (simplified info) to local file (.csv)
+5. Export Spotify playlist (detailed info) to local file (.csv)
+6. Export ALL Spotify playlist (detailed info) to local file (.csv)
 '''
+OPTION_CNT = 6
 
 def get_user_choice():
     while True:
         print(OPTION_MENU)
         try:
-            user_option = int(input('Option (1-5): '))
-            if user_option < 1 or user_option > 5:
-                print('Please input valid number between 1-5.')
+            user_option = int(input(f'Option (1-{OPTION_CNT}): '))
+            if user_option < 1 or user_option > OPTION_CNT:
+                print(f'Please input valid number between 1-{OPTION_CNT}.')
             else: 
                 return user_option
         except ValueError:
@@ -28,18 +30,22 @@ def cli_init():
         process_opt = get_user_choice() 
         if process_opt == 1:
             main.init_transfer()
-            print('\nTransfer process finished.')
+            print('\nTransfer completed.')
         elif process_opt == 2:
-            main.init_transfer_fromLocal()
-            print('\nTransfer process finished.')
-        elif process_opt == 3:
-            main.sp.export_simplified_tracks_info()
-            print('\nPlaylist with simplified track info exported to local csv file.')
-        elif process_opt == 4:
-            main.sp.export_detailed_tracks_info()
-            print('\nPlaylist with detailed track info exported to local csv file.')
-        elif process_opt == 5:
             main.init_update_ytlist()
+            print('\nUpdate finished.')
+        elif process_opt == 3:
+            main.init_transfer_fromLocal()
+            print('\nTransfer completed.')
+        elif process_opt == 4:
+            main.sp.export_simplified_tracks_info()
+            print('\nPlaylist (simplified info) export completed.')
+        elif process_opt == 5:
+            main.sp.export_detailed_tracks_info()
+            print('\nPlaylist (detailed info) export completed.')
+        elif process_opt == 6:
+            main.sp.export_all_playlist_local()
+            print('\nAll playlist exports completed.')
         
         export_more = input('Continue to transfer/export Spotify playlist? (Y / Any key to exit): ')
         if export_more not in ['Y', 'y']:
