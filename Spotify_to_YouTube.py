@@ -241,7 +241,7 @@ class Spotify2Youtube():
             
         def sanitize(self, title):
             invalid_chars = r'[\\\/\:\*\?\'\"\<\>\|]'  
-            return re.sub(invalid_chars, ' ', title)  
+            return re.sub(invalid_chars, '_', title)  
             
  
     class YoutubeImport():
@@ -391,4 +391,3 @@ class Spotify2Youtube():
 
 if __name__ == '__main__':
     main_process = Spotify2Youtube(init_with_config=True)
-    main_process.sp.export_all_playlist_local()
