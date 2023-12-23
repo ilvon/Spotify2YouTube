@@ -315,7 +315,7 @@ class Spotify2Youtube():
                 logging.warning(f"#{iter_idx} {target_attrs['Title']}: Unable to find any matching tracks.")
                 print(f"#{iter_idx} {target_attrs['Title']}: Unable to find any matching tracks.")
                 return None
-            alt_info = alt_track['title'] + '-' + alt_track['artists'][0]['name']
+            alt_info = alt_track['title'] + '-' + (alt_track['artists'][0]['name'] if len(alt_track['artists']) > 0 else 'Unknown Artist')
             
             logging.warning(f"#{iter_idx} {target_attrs['Title']}: Failed to find song with matching title. Alternative track \"{alt_info}\" added(https://www.youtube.com/watch?v={alt_track['videoId']}).")
             return alt_track['videoId']
