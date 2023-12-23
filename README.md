@@ -20,3 +20,4 @@ This python script uses [spotipy](https://github.com/spotipy-dev/spotipy) and [y
   - You can copy the request header from any HTTP request that in `Status` = 200, `Method` = POST, `Domain` = music.youtube.com
 
 - Import results (in YouTube) depends on the YouTube Music search, you should always verify the results after running the script
+- Repeated entries from Spotify playlist will not be exported to YouTube
