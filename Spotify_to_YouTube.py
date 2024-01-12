@@ -127,13 +127,15 @@ class Spotify2Youtube():
                 Spotify2Youtube.terminate(f'Error occurred when creating \"config.json\": {str(err)}')
          
         def export_all_playlist_local(self):
+            os.makedirs('playlists', exist_ok=True)
             playlist_number = len(self.all_playlist_info)
             for iter, playlist in enumerate(self.all_playlist_info):
                 Id = playlist['id']
                 title = playlist['name']
                 length = playlist['tracks']['total']
                 _, attributes = self.get_SPplaylist_tracks_info((Id, title, length))
-                self.export_detailed_tracks_info((title, attributes))
+                csv_filename = self.export_detailed_tracks_info((title, attributes))
+                os.replace(csv_filename, f'./playlists/{csv_filename}')
                 if iter == playlist_number-1:
                     print(f'{iter+1}/{playlist_number} playlist exported')
                 else:
@@ -236,6 +238,7 @@ class Spotify2Youtube():
                     csvwriter.writeheader()
                     for aud in track_info:
                         csvwriter.writerow(aud)
+                return f'{title}.csv'
             except PermissionError:
                 Spotify2Youtube.terminate('\nYou do not have the permission to write the csv file / the exisiting file is in use!')
             except OSError:
