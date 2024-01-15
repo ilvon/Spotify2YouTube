@@ -76,7 +76,27 @@ class Spotify2Youtube():
             Spotify2Youtube.terminate('\nYou do not have the permission to write the csv file / the exisiting file is in use!')
         except Exception as err:
             Spotify2Youtube.terminate(f'\nError occurred: {str(err)}')
-                
+    
+    def print_tracks_URLs(self):
+        try:
+            sp_playlist_title, sp_playlist_tracks = self.sp.get_SPplaylist_tracks_info()
+            print(f'\n{len(sp_playlist_tracks)} tracks will be imported from \"{sp_playlist_title}\" to YouTube')
+            imported_tracks_ID = []
+            total_track_no = len(sp_playlist_tracks)
+            
+            for idx, metadata in enumerate(sp_playlist_tracks):    # metadata : dict->{Title, Artist, Album, ... more}
+                trackID = self.yt.search_tracks(metadata, idx + 1)
+                imported_tracks_ID.append(trackID)
+                if idx == (total_track_no - 1):
+                    print(f'{idx+1}/{total_track_no} exported.\n')
+                else:
+                    print(f'{idx+1}/{total_track_no} exported.', end='\r')
+            print('\nTracks ID:')
+            print('https://www.youtube.com/watch?v=' + 
+                  '\nhttps://www.youtube.com/watch?v='.join(t for t in imported_tracks_ID))
+        except Exception as err:
+            Spotify2Youtube.terminate(f'Error occurred: {str(err)}')   
+                              
     class SpotifyExport():
         def __init__(self, config_file: bool):
             if config_file:
@@ -398,3 +418,4 @@ class Spotify2Youtube():
 
 if __name__ == '__main__':
     main_process = Spotify2Youtube(init_with_config=True)
+    main_process.print_tracks_URLs()
