@@ -1,5 +1,7 @@
 # Spotify2YouTube
 
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/ilvon/Spotify2YouTube/latest)
+
 A simple command-line tool to Spotify playlists to local csv files or transfer to YouTube playlist.
 
 This python script uses [spotipy](https://github.com/spotipy-dev/spotipy) and [ytmusicapi](https://github.com/sigma67/ytmusicapi)
